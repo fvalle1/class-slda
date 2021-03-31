@@ -39,6 +39,12 @@ int main(int argc, char* argv[])
     }
     if (strcmp(argv[1], "est") == 0)
     {
+        if (argc < 8)
+        {
+            help();
+            return 0;
+        }
+
         corpus c;
         char * data_filename = argv[2];
         char * label_filename = argv[3];
@@ -62,6 +68,13 @@ int main(int argc, char* argv[])
 
     if (strcmp(argv[1], "inf") == 0)
     {
+
+        if (argc < 7)
+        {
+            help();
+            return 0;
+        }
+
         corpus c;
         char * data_filename = argv[2];
         char * label_filename = argv[3];
