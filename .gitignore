@@ -1,1 +1,4 @@
 slda
+output/
+train-*
+.vscode

@@ -34,8 +34,8 @@ typedef struct {
     double * word_total_ss;
     int num_docs;
     z_stat * z_bar;
-    int * labels;
-    int * tot_labels;
+    coordinate_int * labels;
+    int **tot_labels;
 } suffstats;
 
 class slda
@@ -76,7 +76,7 @@ public:
 public:
     double alpha; // the parameter for the dirichlet
     int num_topics;
-    int num_classes;
+    coordinate_int num_classes;
     int size_vocab;
 
     double ** log_prob_w; //the log of the topic distribution

@@ -21,13 +21,15 @@
 
 #include "corpus.h"
 #include <assert.h>
-#include <stdio.h>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 corpus::corpus()
 {
     num_docs = 0;
     size_vocab = 0;
-    num_classes = 0;
+    num_classes = coordinate_int();
     num_total_words = 0;
 }
 
@@ -42,7 +44,7 @@ corpus::~corpus()
 
     num_docs = 0;
     size_vocab = 0;
-    num_classes = 0;
+    num_classes.~coordinate();
     num_total_words = 0;
 }
 
@@ -85,21 +87,30 @@ void corpus::read_data(const char * data_filename,
     printf("number of terms : %d\n", nw);
     printf("number of total words : %d\n", num_total_words);
 
-    fileptr = fopen(label_filename, "r");
+    
+    auto labelfile = std::ifstream(label_filename, std::ios::in);
     printf("\nreading labels from %s\n", label_filename);
     nd = 0;
-    while ((fscanf(fileptr, "%10d", &label) != EOF))
+    std::string line;
+    std::string label_s;
+    while (std::getline(labelfile, line))
     {
+        std::stringstream ss(line);
         document * doc = docs[nd];
-        doc->label = label;
-        if (label >= num_classes)
+        std::getline(ss, label_s, ','); // get first item
+        doc->label.x = std::atoi(label_s.c_str());
+        std::getline(ss, label_s, ','); // get second item
+        doc->label.y = std::atoi(label_s.c_str());
+        std::getline(ss, label_s, ','); // get second item
+        doc->label.z = std::atoi(label_s.c_str());
+        if (doc->label.x >= num_classes.x)
         {
-            num_classes = label + 1;
+            num_classes.x = doc->label.x + 1;
         }
         nd ++;
     }
     assert(nd == int(docs.size()));
-    printf("number of classes : %d\n\n", num_classes);
+    cout<<"number of classes : "<<num_classes<<endl<<endl;
 }
 
 int corpus::max_corpus_length() {

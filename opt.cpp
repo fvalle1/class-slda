@@ -41,7 +41,7 @@ double softmax_f(const gsl_vector * x, void * opt_param)
     double f_regularization = 0.0;
 
 
-    for (l = 0; l < model->num_classes-1; l ++)
+    for (l = 0; l < model->num_classes.x-1; l ++)
     {
         for (k = 0; k < model->num_topics; k ++)
         {
@@ -54,14 +54,14 @@ double softmax_f(const gsl_vector * x, void * opt_param)
     {
         for (k = 0; k < model->num_topics; k ++)
         {
-            if (ss->labels[d] < model->num_classes-1)
+            if (ss->labels[d].x < model->num_classes.x-1)
             {
-                f += model->eta[ss->labels[d]][k] * ss->z_bar[d].z_bar_m[k];
+                f += model->eta[ss->labels[d].x][k] * ss->z_bar[d].z_bar_m[k];
             }
         }
 
         t = 0.0; // in log space,  1+exp()+exp()...
-        for (l = 0; l < model->num_classes-1; l ++)
+        for (l = 0; l < model->num_classes.x-1; l ++)
         {
             a1 = 0.0; // \eta_k^T * \bar{\phi}_d
             a2 = 0.0; // 1 + 0.5 * \eta_k^T * Var(z_bar)\eta_k
@@ -97,7 +97,7 @@ void softmax_df(const gsl_vector * x, void * opt_param, gsl_vector * df)
 
     double * eta_aux = new double [model->num_topics];
 
-    for (l = 0; l < model->num_classes-1; l ++)
+    for (l = 0; l < model->num_classes.x-1; l ++)
     {
         for (k = 0; k < model->num_topics; k ++)
         {
@@ -111,8 +111,8 @@ void softmax_df(const gsl_vector * x, void * opt_param, gsl_vector * df)
     {
         for (k = 0; k < model->num_topics; k ++)
         {
-            l = ss->labels[d];
-            if (l < model->num_classes-1)
+            l = ss->labels[d].x;
+            if (l < model->num_classes.x-1)
             {
                 idx = l*model->num_topics + k;
                 g = gsl_vector_get(df, idx) + ss->z_bar[d].z_bar_m[k];
@@ -123,7 +123,7 @@ void softmax_df(const gsl_vector * x, void * opt_param, gsl_vector * df)
         t = 0.0; // in log space, 1+exp()+exp()+....
         gsl_vector_memcpy(df_tmp, df);
         gsl_vector_set_zero(df);
-        for (l = 0; l < model->num_classes-1; l ++)
+        for (l = 0; l < model->num_classes.x-1; l ++)
         {
             memset(eta_aux, 0, sizeof(double)*model->num_topics);
             a1 = 0.0; // \eta_k^T * \bar{\phi}_d
@@ -172,7 +172,7 @@ void softmax_fdf(const gsl_vector * x, void * opt_param, double * f, gsl_vector 
 
     double* eta_aux = new double [model->num_topics];
 
-    for (l = 0; l < model->num_classes-1; l ++)
+    for (l = 0; l < model->num_classes.x-1; l ++)
     {
         for (k = 0; k < model->num_topics; k ++)
         {
@@ -188,8 +188,8 @@ void softmax_fdf(const gsl_vector * x, void * opt_param, double * f, gsl_vector 
     {
         for (k = 0; k < model->num_topics; k ++)
         {
-            l = ss->labels[d];
-            if (l < model->num_classes-1)
+            l = ss->labels[d].x;
+            if (l < model->num_classes.x-1)
             {
                 *f += model->eta[l][k] * ss->z_bar[d].z_bar_m[k];
                 idx = l*model->num_topics + k;
@@ -200,7 +200,7 @@ void softmax_fdf(const gsl_vector * x, void * opt_param, double * f, gsl_vector 
         t = 0.0; // in log space,  base class 1+exp()+exp()
         gsl_vector_memcpy(df_tmp, df);
         gsl_vector_set_zero(df);
-        for (l = 0; l < model->num_classes-1; l ++)
+        for (l = 0; l < model->num_classes.x-1; l ++)
         {
             memset(eta_aux, 0, sizeof(double)*model->num_topics);
             a1 = 0.0; // \eta_k^T * \bar{\phi}_d

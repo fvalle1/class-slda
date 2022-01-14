@@ -23,6 +23,10 @@
 #define CORPUS_H
 
 #include <vector>
+#include <cstddef>
+#include <stdint.h>
+#include <cstdio>
+#include "coordinate.h"
 using namespace std;
 
 class document
@@ -32,7 +36,8 @@ public:
     int * counts;
     int length;
     int total;
-    int label;
+    coordinate_int label;
+
 public:
     document()
     {
@@ -40,7 +45,7 @@ public:
         counts = NULL;
         length = 0;
         total = 0;
-        label = -1;
+        label = coordinate_int();
     }
     document(int len)
     {
@@ -48,7 +53,7 @@ public:
         words = new int [length];
         counts = new int [length];
         total = 0;
-        label = -1;
+        label = coordinate_int();
     }
     ~document()
     {
@@ -58,7 +63,7 @@ public:
             delete [] counts;
             length = 0;
             total = 0;
-            label = -1;
+            label.~coordinate();
         }
     }
 };
@@ -73,7 +78,7 @@ public:
 public:
     int num_docs;
     int size_vocab;
-    int num_classes;
+    coordinate_int num_classes;
     int num_total_words;
     vector<document*> docs;
 };
