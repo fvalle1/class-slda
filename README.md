@@ -3,6 +3,9 @@
 (C) Copyright 2009, Chong Wang, David Blei and Li Fei-Fei. Written by Chong Wang, chongw@cs.princeton.edu, part of code
 is from [lda-c](https://github.com/Blei-Lab/lda-c).
 
+Modified by (C) Copyright 2022, Filippo Valle under the terms of GPL v3
+
+
 This is a C++ implementation of supervised latent Dirichlet allocation (sLDA) for classification. Note that the code here is slightly different from what was described in [2] in order to speed up. Note that this is only the sLDA. The annotation part is not yet posted.
 
 ## Sample data
