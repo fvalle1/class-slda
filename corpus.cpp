@@ -57,6 +57,10 @@ void corpus::read_data(const char * data_filename,
 
     FILE * fileptr;
     fileptr = fopen(data_filename, "r");
+    if (fileptr == NULL)
+    {
+        throw(std::invalid_argument("Error: cannot open data file"));
+    }
     printf("\nreading data from %s\n", data_filename);
     nd = 0;
     nw = 0;
@@ -89,6 +93,10 @@ void corpus::read_data(const char * data_filename,
 
     
     auto labelfile = std::ifstream(label_filename, std::ios::in);
+    if (!labelfile.is_open())
+    {
+        throw(std::invalid_argument("Error: cannot open label file"));
+    }
     printf("\nreading labels from %s\n", label_filename);
     nd = 0;
     std::string line;

@@ -24,6 +24,7 @@
 #include "settings.h"
 #include "corpus.h"
 #include <fstream>
+#include <stdexcept> // std::invalid_argument
 
 typedef struct {
     double * z_bar_m;

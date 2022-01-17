@@ -22,6 +22,7 @@
 #define SETTINGS_H
 #include <stdio.h>
 #include <string.h>
+#include <stdexcept> // std::invalid_argument
 
 struct settings
 {
@@ -38,6 +39,10 @@ struct settings
         char alpha_action[100];
 
         fileptr = fopen(filename, "r");
+        if(fileptr==NULL)
+        {
+            throw(std::invalid_argument("Error: cannot open settings file"));
+        }
         fscanf(fileptr, "var max iter %d\n", &this->VAR_MAX_ITER);
         fscanf(fileptr, "var convergence %f\n", &this->VAR_CONVERGED);
         fscanf(fileptr, "em max iter %d\n", &this->EM_MAX_ITER);
