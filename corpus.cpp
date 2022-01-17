@@ -97,15 +97,13 @@ void corpus::read_data(const char * data_filename,
     {
         std::stringstream ss(line);
         document * doc = docs[nd];
-        std::getline(ss, label_s, ','); // get first item
-        doc->label.x = std::atoi(label_s.c_str());
-        std::getline(ss, label_s, ','); // get second item
-        doc->label.y = std::atoi(label_s.c_str());
-        std::getline(ss, label_s, ','); // get second item
-        doc->label.z = std::atoi(label_s.c_str());
-        if (doc->label.x >= num_classes.x)
-        {
-            num_classes.x = doc->label.x + 1;
+        for(uint8_t dimension = 0; dimension < coordinate_int::size();dimension++){
+            std::getline(ss, label_s, ','); // get nth item
+            doc->label(dimension) = std::atoi(label_s.c_str());
+            if (doc->label[dimension] >= num_classes[dimension])
+            {
+                num_classes(dimension) = doc->label[dimension] + 1;
+            }
         }
         nd ++;
     }

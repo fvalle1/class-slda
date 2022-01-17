@@ -32,6 +32,7 @@ struct coordinate
     T y;
     T z;
     coordinate() : x(0), y(0), z(0){};
+    coordinate(T x_, T y_, T z_) : x(x_), y(y_), z(z_){};
     ~coordinate()
     {
         x = 0;
@@ -41,14 +42,83 @@ struct coordinate
 
     friend bool operator==(const coordinate &a, const coordinate &b)
     {
-        return (a.x == b.x) && (a.y == b.y) && (a.z == b.z);
+        return (a.x == b.x) + (a.y == b.y) && (a.z == b.z);
     };
 
-    friend std::ostream& operator<<(std::ostream& out, const coordinate &data)
+    //element-wise ==
+    friend coordinate operator-(const coordinate &a, const coordinate &b)
+    {
+        return coordinate(static_cast<T>(a.x == b.x),
+                          static_cast<T>(a.y == b.y),
+                          static_cast<T>(a.z == b.z));
+    };
+
+    friend coordinate operator+(const coordinate &a, const coordinate &b)
+    {
+        return coordinate(a.x + b.x,
+                          a.y + b.y,
+                          a.z + b.z);
+    };
+
+    friend coordinate& operator+=(coordinate &a, const coordinate &b)
+    {
+        a = a+b;
+        return a;
+    };
+
+    // count how many items are equal
+    // sort of weighted == to estimate weighted accuracy 
+    friend double operator||(const coordinate &a, const coordinate &b)
+    {
+        static double t = 1./3.;
+         return ((a.x == b.x) ? t:0.) + ((a.y == b.y) ? t:0.) + ((a.z == b.z) ? t:0.);
+    };
+
+    friend std::ostream &operator<<(std::ostream &out, const coordinate &data)
     {
         out << "(" << data.x << "," << data.y << "," << data.z << ")";
         return out;
     };
+
+    T operator[](const uint8_t i) const //getter
+    {
+        switch (i)
+        {
+        case 0:
+            return this->x;
+            break;
+        case 1:
+            return this->y;
+            break;
+        case 2:
+            return this->z;
+            break;
+        default:
+            throw std::out_of_range("index out of range");
+            break;
+        }
+    }
+
+    T& operator()(const uint8_t i) //setter (note T&)
+    {
+        switch (i)
+        {
+        case 0:
+            return x;
+            break;
+        case 1:
+            return y;
+            break;
+        case 2:
+            return z;
+            break;
+        default:
+            throw std::out_of_range("index out of range");
+            break;
+        }
+    }
+
+    static constexpr uint8_t size(){return 3;}//only harcoded here
 };
 
 typedef coordinate<int> coordinate_int;

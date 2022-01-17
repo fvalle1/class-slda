@@ -27,12 +27,12 @@
  * the second line in eqaution (6).
  */
 
-double softmax_f(const gsl_vector * x, void * opt_param)
+double softmax_f(const gsl_vector *x, void *opt_param)
 {
-    opt_parameter * gsl_param = (opt_parameter *)opt_param;
+    opt_parameter *gsl_param = (opt_parameter *)opt_param;
     double PENALTY = gsl_param->PENALTY;
-    slda * model = gsl_param->model;
-    suffstats * ss = gsl_param->ss;
+    slda *model = gsl_param->model;
+    suffstats *ss = gsl_param->ss;
 
     double f, t, a1 = 0.0, a2 = 0.0;
 
@@ -40,199 +40,207 @@ double softmax_f(const gsl_vector * x, void * opt_param)
 
     double f_regularization = 0.0;
 
-
-    for (l = 0; l < model->num_classes.x-1; l ++)
+    for (uint8_t dimension = 0; dimension < coordinate_int::size(); dimension++)
     {
-        for (k = 0; k < model->num_topics; k ++)
+        for (l = 0; l < model->num_classes[dimension] - 1; l++)
         {
-            model->eta[l][k] = gsl_vector_get(x, l*model->num_topics + k);
-            f_regularization -= pow(model->eta[l][k], 2) * PENALTY/2.0;
-        }
-    }
-    f = 0.0; //log likelihood
-    for (d = 0; d < ss->num_docs; d ++)
-    {
-        for (k = 0; k < model->num_topics; k ++)
-        {
-            if (ss->labels[d].x < model->num_classes.x-1)
+            for (k = 0; k < model->num_topics; k++)
             {
-                f += model->eta[ss->labels[d].x][k] * ss->z_bar[d].z_bar_m[k];
+                model->eta[dimension][l][k] = gsl_vector_get(x, l * model->num_topics + k);
+                f_regularization -= pow(model->eta[dimension][l][k], 2) * PENALTY / 2.0;
             }
         }
-
-        t = 0.0; // in log space,  1+exp()+exp()...
-        for (l = 0; l < model->num_classes.x-1; l ++)
+        f = 0.0; //log likelihood
+        for (d = 0; d < ss->num_docs; d++)
         {
-            a1 = 0.0; // \eta_k^T * \bar{\phi}_d
-            a2 = 0.0; // 1 + 0.5 * \eta_k^T * Var(z_bar)\eta_k
-            for (k = 0; k < model->num_topics; k ++)
+            for (k = 0; k < model->num_topics; k++)
             {
-                a1 += model->eta[l][k] * ss->z_bar[d].z_bar_m[k];
-                for (j = 0; j < model->num_topics; j ++)
+                if (ss->labels[d][dimension] < model->num_classes[dimension] - 1)
                 {
-                    idx = map_idx(k, j, model->num_topics);
-                    a2 += model->eta[l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[l][j];
+                    f += model->eta[dimension][ss->labels[d][dimension]][k] * ss->z_bar[d].z_bar_m[k];
                 }
             }
-            a2 = 1.0 + 0.5 * a2;
-            t = log_sum(t, a1 + log(a2));
-        }
-        f -= t; 
-    }
 
+            t = 0.0; // in log space,  1+exp()+exp()...
+            for (l = 0; l < model->num_classes[dimension] - 1; l++)
+            {
+                a1 = 0.0; // \eta_k^T * \bar{\phi}_d
+                a2 = 0.0; // 1 + 0.5 * \eta_k^T * Var(z_bar)\eta_k
+                for (k = 0; k < model->num_topics; k++)
+                {
+                    a1 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_m[k];
+                    for (j = 0; j < model->num_topics; j++)
+                    {
+                        idx = map_idx(k, j, model->num_topics);
+                        a2 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[dimension][l][j];
+                    }
+                }
+                a2 = 1.0 + 0.5 * a2;
+                t = log_sum(t, a1 + log(a2));
+            }
+            f -= t;
+        }
+    }
     return -(f + f_regularization);
 }
-void softmax_df(const gsl_vector * x, void * opt_param, gsl_vector * df)
+void softmax_df(const gsl_vector *x, void *opt_param, gsl_vector *df)
 {
 
-    opt_parameter * gsl_param = (opt_parameter *)opt_param;
+    opt_parameter *gsl_param = (opt_parameter *)opt_param;
     double PENALTY = gsl_param->PENALTY;
-    slda * model = gsl_param->model;
-    suffstats * ss = gsl_param->ss;
+    slda *model = gsl_param->model;
+    suffstats *ss = gsl_param->ss;
     gsl_vector_set_zero(df);
-    gsl_vector * df_tmp = gsl_vector_alloc(df->size);
+    gsl_vector *df_tmp = gsl_vector_alloc(df->size);
 
     double t, a1 = 0.0, a2 = 0.0, g;
     int k, d, j, l, idx;
 
-    double * eta_aux = new double [model->num_topics];
+    double *eta_aux = new double[model->num_topics];
 
-    for (l = 0; l < model->num_classes.x-1; l ++)
+    for (uint8_t dimension = 0; dimension < coordinate_int::size(); dimension++)
     {
-        for (k = 0; k < model->num_topics; k ++)
+        for (l = 0; l < model->num_classes[dimension] - 1; l++)
         {
-            idx = l*model->num_topics + k;
-            model->eta[l][k] = gsl_vector_get(x, idx); 
-            g = -PENALTY * model->eta[l][k];
-            gsl_vector_set(df, idx, g);
-        }
-    }
-    for (d = 0; d < ss->num_docs; d ++)
-    {
-        for (k = 0; k < model->num_topics; k ++)
-        {
-            l = ss->labels[d].x;
-            if (l < model->num_classes.x-1)
+            for (k = 0; k < model->num_topics; k++)
             {
-                idx = l*model->num_topics + k;
-                g = gsl_vector_get(df, idx) + ss->z_bar[d].z_bar_m[k];
+                idx = l * model->num_topics + k;
+                model->eta[dimension][l][k] = gsl_vector_get(x, idx);
+                g = -PENALTY * model->eta[dimension][l][k];
                 gsl_vector_set(df, idx, g);
             }
         }
 
-        t = 0.0; // in log space, 1+exp()+exp()+....
-        gsl_vector_memcpy(df_tmp, df);
-        gsl_vector_set_zero(df);
-        for (l = 0; l < model->num_classes.x-1; l ++)
+        for (d = 0; d < ss->num_docs; d++)
         {
-            memset(eta_aux, 0, sizeof(double)*model->num_topics);
-            a1 = 0.0; // \eta_k^T * \bar{\phi}_d
-            a2 = 0.0; // 1 + 0.5*\eta_k^T * Var(z_bar)\eta_k
-            for (k = 0; k < model->num_topics; k ++)
+            for (k = 0; k < model->num_topics; k++)
             {
-                a1 += model->eta[l][k] * ss->z_bar[d].z_bar_m[k];
-                for (j = 0; j < model->num_topics; j ++)
+                l = ss->labels[d][dimension];
+                if (l < model->num_classes[dimension] - 1)
                 {
-                    idx = map_idx(k, j, model->num_topics);
-                    a2 += model->eta[l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[l][j];
-                    eta_aux[k] += ss->z_bar[d].z_bar_var[idx] * model->eta[l][j];
+                    idx = l * model->num_topics + k;
+                    g = gsl_vector_get(df, idx) + ss->z_bar[d].z_bar_m[k];
+                    gsl_vector_set(df, idx, g);
                 }
             }
-            a2 = 1.0 + 0.5 * a2;
-            t = log_sum(t, a1 + log(a2));
 
-            for (k = 0; k < model->num_topics; k ++)
+            t = 0.0; // in log space, 1+exp()+exp()+....
+            gsl_vector_memcpy(df_tmp, df);
+            gsl_vector_set_zero(df);
+            for (l = 0; l < model->num_classes[dimension] - 1; l++)
             {
-                idx = l*model->num_topics + k;
-                g =  gsl_vector_get(df, idx) -
-                     exp(a1) * (ss->z_bar[d].z_bar_m[k] * a2 + eta_aux[k]);
-                gsl_vector_set(df, idx, g);
+                memset(eta_aux, 0, sizeof(double) * model->num_topics);
+                a1 = 0.0; // \eta_k^T * \bar{\phi}_d
+                a2 = 0.0; // 1 + 0.5*\eta_k^T * Var(z_bar)\eta_k
+                for (k = 0; k < model->num_topics; k++)
+                {
+                    a1 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_m[k];
+                    for (j = 0; j < model->num_topics; j++)
+                    {
+                        idx = map_idx(k, j, model->num_topics);
+                        a2 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[dimension][l][j];
+                        eta_aux[k] += ss->z_bar[d].z_bar_var[idx] * model->eta[dimension][l][j];
+                    }
+                }
+                a2 = 1.0 + 0.5 * a2;
+                t = log_sum(t, a1 + log(a2));
+
+                for (k = 0; k < model->num_topics; k++)
+                {
+                    idx = l * model->num_topics + k;
+                    g = gsl_vector_get(df, idx) -
+                        exp(a1) * (ss->z_bar[d].z_bar_m[k] * a2 + eta_aux[k]);
+                    gsl_vector_set(df, idx, g);
+                }
             }
+            gsl_vector_scale(df, exp(-t));
+            gsl_vector_add(df, df_tmp);
         }
-        gsl_vector_scale(df, exp(-t));
-        gsl_vector_add(df, df_tmp);
     }
     gsl_vector_scale(df, -1.0);
-    delete [] eta_aux;
+    delete[] eta_aux;
     gsl_vector_free(df_tmp);
 }
-void softmax_fdf(const gsl_vector * x, void * opt_param, double * f, gsl_vector * df)
+
+void softmax_fdf(const gsl_vector *x, void *opt_param, double *f, gsl_vector *df)
 {
-    opt_parameter * gsl_param = (opt_parameter *)opt_param;
+    opt_parameter *gsl_param = (opt_parameter *)opt_param;
     double PENALTY = gsl_param->PENALTY;
-    slda * model = gsl_param->model;
-    suffstats * ss = gsl_param->ss;
+    slda *model = gsl_param->model;
+    suffstats *ss = gsl_param->ss;
     gsl_vector_set_zero(df);
-    gsl_vector * df_tmp = gsl_vector_alloc(df->size);
+    gsl_vector *df_tmp = gsl_vector_alloc(df->size);
 
     double t, a1 = 0.0, a2 = 0.0, g;
     int k, d, j, l, idx;
 
     double f_regularization = 0.0;
 
-    double* eta_aux = new double [model->num_topics];
+    double *eta_aux = new double[model->num_topics];
 
-    for (l = 0; l < model->num_classes.x-1; l ++)
+    for (uint8_t dimension = 0; dimension < coordinate_int::size(); dimension++)
     {
-        for (k = 0; k < model->num_topics; k ++)
+        for (l = 0; l < model->num_classes[dimension] - 1; l++)
         {
-            model->eta[l][k] = gsl_vector_get(x, l*model->num_topics + k);
-            f_regularization -= pow(model->eta[l][k], 2) * PENALTY/2.0;
-            idx = l*model->num_topics + k;
-            g = -PENALTY * model->eta[l][k];
-            gsl_vector_set(df, idx, g);
-        }
-    }
-    *f = 0.0; //log likelihood
-    for (d = 0; d < ss->num_docs; d ++)
-    {
-        for (k = 0; k < model->num_topics; k ++)
-        {
-            l = ss->labels[d].x;
-            if (l < model->num_classes.x-1)
+            for (k = 0; k < model->num_topics; k++)
             {
-                *f += model->eta[l][k] * ss->z_bar[d].z_bar_m[k];
-                idx = l*model->num_topics + k;
-                g = gsl_vector_get(df, idx) + ss->z_bar[d].z_bar_m[k];
+                model->eta[dimension][l][k] = gsl_vector_get(x, l * model->num_topics + k);
+                f_regularization -= pow(model->eta[dimension][l][k], 2) * PENALTY / 2.0;
+                idx = l * model->num_topics + k;
+                g = -PENALTY * model->eta[dimension][l][k];
                 gsl_vector_set(df, idx, g);
             }
         }
-        t = 0.0; // in log space,  base class 1+exp()+exp()
-        gsl_vector_memcpy(df_tmp, df);
-        gsl_vector_set_zero(df);
-        for (l = 0; l < model->num_classes.x-1; l ++)
+        *f = 0.0; //log likelihood
+        for (d = 0; d < ss->num_docs; d++)
         {
-            memset(eta_aux, 0, sizeof(double)*model->num_topics);
-            a1 = 0.0; // \eta_k^T * \bar{\phi}_d
-            a2 = 0.0; // 1 + 0.5 * \eta_k^T * Var(z_bar)\eta_k
-            for (k = 0; k < model->num_topics; k ++)
+            for (k = 0; k < model->num_topics; k++)
             {
-                a1 += model->eta[l][k] * ss->z_bar[d].z_bar_m[k];
-                for (j = 0; j < model->num_topics; j ++)
+                l = ss->labels[d][dimension];
+                if (l < model->num_classes[dimension] - 1)
                 {
-                    idx = map_idx(k, j, model->num_topics);
-                    a2 += model->eta[l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[l][j];
-                    eta_aux[k] += ss->z_bar[d].z_bar_var[idx] * model->eta[l][j];
+                    *f += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_m[k];
+                    idx = l * model->num_topics + k;
+                    g = gsl_vector_get(df, idx) + ss->z_bar[d].z_bar_m[k];
+                    gsl_vector_set(df, idx, g);
                 }
             }
-            a2 = 1.0 + 0.5 * a2;
-            t = log_sum(t, a1 + log(a2));
-
-            for (k = 0; k < model->num_topics; k ++)
+            t = 0.0; // in log space,  base class 1+exp()+exp()
+            gsl_vector_memcpy(df_tmp, df);
+            gsl_vector_set_zero(df);
+            for (l = 0; l < model->num_classes[dimension] - 1; l++)
             {
-                idx = l*model->num_topics + k;
-                g =  gsl_vector_get(df, idx) -
-                     exp(a1) * (ss->z_bar[d].z_bar_m[k] * a2 + eta_aux[k]);
-                gsl_vector_set(df, idx, g);
+                memset(eta_aux, 0, sizeof(double) * model->num_topics);
+                a1 = 0.0; // \eta_k^T * \bar{\phi}_d
+                a2 = 0.0; // 1 + 0.5 * \eta_k^T * Var(z_bar)\eta_k
+                for (k = 0; k < model->num_topics; k++)
+                {
+                    a1 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_m[k];
+                    for (j = 0; j < model->num_topics; j++)
+                    {
+                        idx = map_idx(k, j, model->num_topics);
+                        a2 += model->eta[dimension][l][k] * ss->z_bar[d].z_bar_var[idx] * model->eta[dimension][l][j];
+                        eta_aux[k] += ss->z_bar[d].z_bar_var[idx] * model->eta[dimension][l][j];
+                    }
+                }
+                a2 = 1.0 + 0.5 * a2;
+                t = log_sum(t, a1 + log(a2));
+
+                for (k = 0; k < model->num_topics; k++)
+                {
+                    idx = l * model->num_topics + k;
+                    g = gsl_vector_get(df, idx) -
+                        exp(a1) * (ss->z_bar[d].z_bar_m[k] * a2 + eta_aux[k]);
+                    gsl_vector_set(df, idx, g);
+                }
             }
+            gsl_vector_scale(df, exp(-t));
+            gsl_vector_add(df, df_tmp);
+            *f -= t;
         }
-        gsl_vector_scale(df, exp(-t));
-        gsl_vector_add(df, df_tmp);
-        *f -= t; 
+        gsl_vector_scale(df, -1.0);
     }
-    gsl_vector_scale(df, -1.0);
     *f = -(*f + f_regularization);
-    delete [] eta_aux;
+    delete[] eta_aux;
     gsl_vector_free(df_tmp);
 }
-

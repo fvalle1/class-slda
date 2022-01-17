@@ -23,6 +23,7 @@
 #define SLDA_H
 #include "settings.h"
 #include "corpus.h"
+#include <fstream>
 
 typedef struct {
     double * z_bar_m;
@@ -66,8 +67,8 @@ public:
 
     double lda_inference(document* doc, double* var_gamma, double** phi, const settings * setting);
     double lda_compute_likelihood(document* doc, double** phi, double* var_gamma);
-    double slda_inference(document* doc, double* var_gamma, double** phi, const settings * setting);
-    double slda_compute_likelihood(document* doc, double** phi, double* var_gamma);
+    double slda_inference(document *doc, double *var_gamma, double **phi, const settings *setting, uint8_t dimension = 0);
+    double slda_compute_likelihood(document *doc, double **phi, double *var_gamma, uint8_t dimension = 0);
 
     void save_gamma(char* filename, double** gamma, int num_docs);
     void write_word_assignment(FILE* f, document* doc, double** phi);
@@ -80,7 +81,7 @@ public:
     int size_vocab;
 
     double ** log_prob_w; //the log of the topic distribution
-    double ** eta; //softmax regression, in general, there are num_classes-1 etas, we don't need a intercept here, since \sum_i \bar{z_i} = 1
+    double *** eta; //softmax regression, in general, there are num_classes-1 etas, we don't need a intercept here, since \sum_i \bar{z_i} = 1
 };
 
 #endif // SLDA_H

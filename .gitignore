@@ -2,3 +2,6 @@ slda
 output/
 train-*
 .vscode
+*.o
+*.output
+*.out
